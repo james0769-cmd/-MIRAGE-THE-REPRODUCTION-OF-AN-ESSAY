@@ -1,6 +1,7 @@
 ---
 license: mit
 ---
+
 # _Mirage-in-the-Eyes_: Hallucination Attack on Multi-modal Large Language Models with _Only_ Attention Sink
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-g.svg)](https://opensource.org/licenses/MIT)
@@ -24,42 +25,27 @@ license: mit
 
 ### 总体步骤
 
-| 阶段 | 内容 | 预计时间 |
-|------|------|----------|
-| **阶段 0** | 下载项目代码 | 5 分钟 |
-| **阶段 1** | 环境配置与依赖安装 | 10-15 分钟 |
-| **阶段 2** | 下载模型权重 | 1-2 小时 |
-| **阶段 3** | 修改配置文件 | 10 分钟 |
-| **阶段 4** | 准备数据集 | 30-60 分钟 |
-| **阶段 5** | 运行验证 | 15-30 分钟 |
-| **总计** | - | **约 2-4 小时** |
+| 阶段 | 内容 |
+|------|------|
+| **阶段 0** | 下载项目代码 |
+| **阶段 1** | 环境配置与依赖安装 |
+| **阶段 2** | 下载模型权重 |
+| **阶段 3** | 修改配置文件 |
+| **阶段 4** | 准备数据集 |
+| **阶段 5** | 运行验证 |
 
 ---
 
-## 阶段 0: 下载项目代码 (Download Project Code)
+## 阶段 0: 下载项目模型 (Download Project Model)
 
-### 方式 1: 从 HuggingFace 下载（推荐）
+### 从 HuggingFace 下载
 
 ```powershell
 # 安装 git-lfs（如果尚未安装）
-# 下载地址: https://git-lfs.github.com/
-git lfs install
+powershell -ExecutionPolicy ByPass -c "irm https://hf.co/cli/install.ps1 | iex"
 
 # 克隆仓库（包含代码但不包含大文件）
-git clone https://huggingface.co/spaces/YOUR_USERNAME/Mirage-in-the-Eyes
-cd Mirage-in-the-Eyes
-
-# 或者使用 HuggingFace CLI 下载
-pip install huggingface_hub
-huggingface-cli download YOUR_USERNAME/Mirage-in-the-Eyes --repo-type space --local-dir ./Mirage-in-the-Eyes
-```
-
-### 方式 2: 从其他源下载
-
-```powershell
-# 如果从其他 Git 仓库克隆
-git clone <your-repo-url>
-cd Mirage-in-the-Eyes
+hf download RachelHGF/Mirage-in-the-Eyes
 ```
 
 > [!IMPORTANT]
@@ -68,10 +54,13 @@ cd Mirage-in-the-Eyes
 > - `eval/` - 评估脚本
 > - `eval_configs/` - 配置文件
 > - `transformers-4.29.2/` - 修改版 transformers
+> - `attack.py` - 攻击脚本
+> - `generate.py` - 生成脚本
+> - `requirements.txt` - 依赖文件
 
 ---
 
-## 阶段 1: 环境配置与依赖安装 (Environment Setup)
+## 阶段 1: 环境配置与依赖安装
 
 ### 1.1 创建 Conda 环境
 
@@ -81,23 +70,19 @@ conda create -n mllm python=3.9.20
 conda activate mllm
 ```
 
-### 1.2 安装基础依赖
-
-**Windows 用户：**
+### 1.2 安装依赖
 
 ```powershell
-# 安装基础依赖
-pip install -r requirements_windows.txt
-
-# 安装修改版 transformers
-python -m pip install -e transformers-4.29.2
+# 安装依赖
+pip install -r requirements.txt
 ```
 
-**Linux/Mac 用户：**
+> [!IMPORTANT]
+> 由于原项目可能是在服务器环境上运行，所以我们修改了依赖文件，适用于win11操作系统
 
 ```powershell
-# 安装基础依赖
-pip install -r requirements.txt
+# 安装依赖
+pip install -r requirements_windows.txt
 
 # 安装修改版 transformers
 python -m pip install -e transformers-4.29.2
@@ -111,6 +96,8 @@ pip install sentencepiece accelerate peft timm einops open_clip_torch opencv-pyt
 ```
 
 ### 1.4 验证安装
+
+我们写了验证脚本，用于检查环境是否配置正确
 
 ```powershell
 python verify_install.py
@@ -238,6 +225,7 @@ D:\AI PROJEAT\mirage\data\
 - 区域描述: [region_descriptions.json](http://visualgenome.org/static/data/dataset/region_descriptions.json.zip) (~712MB)
 
 **目录结构：**
+
 ```
 D:\AI PROJEAT\mirage\data\VG\
 ├── VG_100K/                    # 64,346 张图片
@@ -249,224 +237,3 @@ D:\AI PROJEAT\mirage\data\VG\
 ---
 
 ## 阶段 5: 运行验证 (Running & Verification)
-
-### 5.1 推理测试
-
-```powershell
-conda activate mllm
-python generate.py `
-  --model minigpt4 `
-  --gpu-id 0 `
-  --data-path "D:\AI PROJEAT\mirage\data\hallubench\hallubench.json" `
-  --images-path "D:\AI PROJEAT\mirage\data\images" `
-  --response-path "D:\AI PROJEAT\mirage\output\response.json" `
-  --generation-mode greedy
-```
-
-### 5.2 幻觉攻击
-
-```powershell
-python attack.py `
-  --model minigpt4 `
-  --gpu-id 0 `
-  --data-path "D:\AI PROJEAT\mirage\data\hallubench\hallubench.json" `
-  --images-path "D:\AI PROJEAT\mirage\data\images" `
-  --save-path "D:\AI PROJEAT\mirage\output\adv_images" `
-  --generation-mode greedy `
-  --eps 2
-```
-
-### 5.3 评估结果
-
-```powershell
-cd eval
-python json_eval.py `
-  --json-file "../output/response.json" `
-  --bench-path "../data/hallubench" `
-  --log-path "../output/log"
-```
-
-> [!TIP]
-> **监控显存使用**
-> ```powershell
-> # 在另一个终端窗口运行
-> nvidia-smi -l 1
-> ```
-> 确保显存占用不超过 8GB
-
----
-
-## 📁 项目结构 (Project Structure)
-
-```
-Mirage-in-the-Eyes/
-├── .gitignore                  # Git 忽略文件配置
-├── README.md                   # 本文档
-├── LICENSE                     # MIT 许可证
-├── requirements.txt            # Python 依赖（Linux/Mac）
-├── requirements_windows.txt    # Python 依赖（Windows）
-├── attack.py                   # 主要攻击实现
-├── generate.py                 # MLLM 响应生成
-├── test_small_sample.py        # 小样本测试
-├── verify_install.py           # 环境验证脚本
-├── transformers-4.29.2/        # 修改版 transformers 库
-├── minigpt4/                   # MiniGPT-4 核心代码
-│   ├── configs/                # 模型配置
-│   ├── models/                 # 模型定义
-│   └── ...
-├── eval/                       # 评估脚本
-├── eval_configs/               # 评估配置
-│   └── minigpt4_eval.yaml
-├── data/                       # 数据集目录（需自行下载）
-│   ├── hallubench/             # Hallubench 数据集
-│   ├── images/                 # 图片文件
-│   └── VG/                     # Visual Genome 数据集（可选）
-├── weights/                    # 模型权重（需自行下载）
-│   ├── minigpt4/               # MiniGPT-4 权重
-│   │   └── pretrained_minigpt4_7b.pth
-│   └── vicuna/                 # Vicuna 权重
-│       └── vicuna-7b-v0/
-└── output/                     # 输出目录
-    ├── response.json           # 生成的响应
-    ├── adv_images/             # 对抗样本图片
-    └── log/                    # 评估日志
-```
-
----
-
-## ⚠️ 注意事项 (Important Notes)
-
-### 硬件要求
-
-> [!WARNING]
-> **RTX 4060 (8GB) 显存限制**
-> - 仅使用 Vicuna-7B 模型，避免 13B 或更大模型
-> - 运行前关闭所有占用 GPU 的程序（浏览器、其他模型等）
-> - 使用 `batch_size=1`
-> - 如果出现 OOM (Out of Memory) 错误，尝试：
->   - 减小输入图片分辨率
->   - 使用 `torch.cuda.empty_cache()`
->   - 启用梯度检查点 (gradient checkpointing)
-
-### 数据集要求
-
-1. **Hallubench 数据集**: 必需，用于评测（~1-2GB）
-2. **Visual Genome 数据集**: 可选，用于训练（~30GB）
-3. **存储空间**: 确保至少有 50GB 可用空间（包括模型权重）
-
-### 网络要求
-
-1. **HuggingFace 访问**: 部分地区可能需要代理
-2. **下载速度**: 模型权重约 18GB，建议使用稳定网络
-3. **断点续传**: 使用 `huggingface-cli` 支持断点续传
-
-### 环境兼容性
-
-1. **CUDA 版本**: 确保 CUDA 11.7+ 
-2. **PyTorch 版本**: 推荐 PyTorch 2.0+
-3. **Python 版本**: 必须使用 Python 3.9.x
-4. **操作系统**: Windows 10/11, Linux (Ubuntu 20.04+), macOS (Intel/Apple Silicon)
-
----
-
-## 🔧 常见问题 (Troubleshooting)
-
-### 1. HuggingFace 下载失败
-
-```powershell
-# 设置国内镜像（可选）
-export HF_ENDPOINT=https://hf-mirror.com
-
-# 或使用代理
-set HTTP_PROXY=http://127.0.0.1:7890
-set HTTPS_PROXY=http://127.0.0.1:7890
-```
-
-### 2. 显存不足 (OOM)
-
-```python
-# 在代码中添加
-import torch
-torch.cuda.empty_cache()
-
-# 或使用较小的批次大小
-# 修改配置文件中的 batch_size 为 1
-```
-
-### 3. 依赖冲突
-
-```powershell
-# 重新创建环境
-conda deactivate
-conda env remove -n mllm
-conda create -n mllm python=3.9.20
-conda activate mllm
-
-# 按顺序重新安装依赖
-pip install -r requirements_windows.txt
-python -m pip install -e transformers-4.29.2
-pip install sentencepiece accelerate peft timm einops
-```
-
-### 4. 路径错误
-
-确保所有路径使用：
-- 绝对路径
-- 正斜杠 `/` 或双反斜杠 `\\`
-- 不包含中文字符
-
----
-
-## 🙏 致谢 (Acknowledgement)
-
-This repository is based on the MLLM codebase of [OPERA](https://github.com/shikiw/OPERA/tree/main). We sincerely thank the contributors for their valuable work.
-
-Special thanks to:
-- [MiniGPT-4](https://github.com/Vision-CAIR/MiniGPT-4) for the foundational model
-- [Vicuna](https://lmsys.org/blog/2023-03-30-vicuna/) for the language model backbone
-- [HA-DPO](https://github.com/opendatalab/HA-DPO) for the Hallubench dataset
-
----
-
-## 📚 相关资源 (Related Resources)
-
-- **论文**: [Link to paper] (待发布)
-- **MiniGPT-4 官方文档**: https://minigpt-4.github.io/
-- **Vicuna 模型**: https://lmsys.org/blog/2023-03-30-vicuna/
-- **Hallubench 数据集**: https://github.com/opendatalab/HA-DPO
-- **OPERA 项目**: https://github.com/shikiw/OPERA
-
----
-
-## 📧 联系方式 (Contact)
-
-如有问题或合作意向，请通过以下方式联系：
-
-- **GitHub Issues**: [提交 Issue](https://github.com/YOUR_USERNAME/Mirage-in-the-Eyes/issues)
-- **Email**: your.email@example.com
-- **Pull Requests**: 欢迎贡献代码
-
----
-
-## 📄 许可证 (License)
-
-本项目采用 [MIT License](LICENSE)。
-
-```
-MIT License
-
-Copyright (c) 2024 Mirage-in-the-Eyes Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction...
-```
-
----
-
-## 🔖 版本历史 (Version History)
-
-- **v1.0.0** (2024-12-23)
-  - 初始发布
-  - 支持 MiniGPT-4 (Vicuna-7B) 复现
-  - RTX 4060 8GB 优化版本
