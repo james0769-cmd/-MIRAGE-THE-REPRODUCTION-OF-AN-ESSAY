@@ -27,12 +27,12 @@ license: mit
 
 | 阶段 | 内容 |
 |------|------|
-| **阶段 0** | 下载项目代码 |
-| **阶段 1** | 环境配置与依赖安装 |
-| **阶段 2** | 下载模型权重 |
-| **阶段 3** | 修改配置文件 |
-| **阶段 4** | 准备数据集 |
-| **阶段 5** | 运行验证 |
+| **阶段 0** | [下载项目模型](#阶段-0-下载项目模型-download-project-model) |
+| **阶段 1** | [环境配置与依赖安装](#阶段-1-环境配置与依赖安装) |
+| **阶段 2** | [下载模型权重](#阶段-2-下载模型权重-download-model-weights) |
+| **阶段 3** | [修改配置文件](#阶段-3-修改配置文件-configuration) |
+| **阶段 4** | [准备数据集](#阶段-4-准备数据集-data-preparation) |
+| **阶段 5** | [运行验证](#阶段-5-运行验证-running--verification) |
 
 ---
 
@@ -98,6 +98,15 @@ conda activate mllm
 pip install -r requirements.txt
 ```
 
+> [!CAUTION]
+> **关于 `requirements.txt` 的重要避坑说明**：
+> 原始项目的 `requirements.txt` 包含了大量针对 Linux 服务器环境的配置，在 Windows/Win11 下会报错，原因包括：
+> - ✗ 包含 29 个 Linux 硬编码路径链接 (`file:///home/...`)。
+> - ✗ 包含 Linux 专用库（如 `uvloop`, `ptyprocess` 等）。
+> - ✗ 包含需要 SSH 密钥配置的 Git 依赖。
+>
+> 因此，**如果你是 Windows 用户，请务必使用下方的 Windows 专用命令**，以避免安装失败。
+
 > [!IMPORTANT]
 > 由于原项目是在 Linux/服务器环境上运行，我们为 Win11 优化了依赖文件：
 ```powershell
@@ -121,7 +130,8 @@ python verify_install.py
 ```
 
 > [!TIP]
-> 如果出现核心错误，请检查 CUDA 和 PyTorch 版本。推荐：CUDA 11.7+ / PyTorch 2.0+。
+> 如果出现核心错误，请检查 CUDA 和 PyTorch 版本。
+> **重要提醒**：虽然您的显卡驱动可能支持 CUDA 12.x，但本项目依赖 CUDA 11.x 的环境。脚本中已默认安装 CUDA 11.8 版本的 PyTorch 以确保最佳兼容性。推荐环境：CUDA 11.7+ / PyTorch 2.0+。
 
 ---
 

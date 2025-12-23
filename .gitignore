@@ -3,14 +3,14 @@
 # ==========================================
 # 根目录现有文件
 LICENSE
-QUICKSTART_WINDOWS.md
+# QUICKSTART_WINDOWS.md
 README(origin).md
 attack.py
 generate.py
 requirements.txt
 # requirements_windows.txt
 # setup_windows.bat
-test_small_sample.py
+# test_small_sample.py
 verify_install.py
 
 # 根目录现有目录
