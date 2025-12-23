@@ -1,0 +1,134 @@
+# ==========================================
+# 现有项目文件和目录 (Existing Project Files)
+# ==========================================
+# 根目录现有文件
+LICENSE
+QUICKSTART_WINDOWS.md
+README(origin).md
+attack.py
+generate.py
+requirements.txt
+# requirements_windows.txt
+setup_windows.bat
+test_small_sample.py
+verify_install.py
+
+# 根目录现有目录
+__MACOSX/
+eval/
+eval_configs/
+minigpt4/
+weights/
+
+# 依赖库文件
+transformers-4.29.2/
+transformers-4.29.2.zip
+
+# ==========================================
+# 数据集文件 (Dataset Files)
+# ==========================================
+# Visual Genome 数据集 - 约108K个图像文件
+data/VG/
+# Hallubench 数据集
+data/hadpo/
+
+# ==========================================
+# 模型权重 (Model Weights)
+# ==========================================
+# MiniGPT-4 预训练权重
+weights/minigpt4/*.pth
+# Vicuna 模型权重
+weights/vicuna/
+
+# ==========================================
+# 依赖库文件 (Dependency Files)
+# ==========================================
+# transformers 库（应通过 pip 安装）
+transformers-4.29.2/
+transformers-4.29.2.zip
+
+# ==========================================
+# 生成的输出文件 (Generated Output Files)
+# ==========================================
+# 对抗样本图片
+adv_images/
+adversarial_images/
+# MLLM 响应文件
+responses/
+# 只忽略根目录和 responses/ 下的 JSON 文件
+/*.json
+responses/*.json
+# 保留配置文件
+!eval_configs/*.json
+!minigpt4/configs/*.json
+# 日志文件
+logs/
+*.log
+eval/logs/
+
+# ==========================================
+# Python 缓存和编译文件
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==========================================
+# Jupyter Notebook
+# ==========================================
+.ipynb_checkpoints
+*.ipynb
+
+# ==========================================
+# 环境配置文件
+# ==========================================
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ==========================================
+# IDE 配置文件
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ==========================================
+# macOS 系统文件
+# ==========================================
+__MACOSX/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ==========================================
+# 临时文件
+# ==========================================
+*.tmp
+*.bak
+*.orig
+*.rej
