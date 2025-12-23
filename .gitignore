@@ -3,7 +3,7 @@
 # ==========================================
 # 根目录现有文件
 LICENSE
-# QUICKSTART_WINDOWS.md
+QUICKSTART_WINDOWS.md
 README(origin).md
 attack.py
 generate.py
