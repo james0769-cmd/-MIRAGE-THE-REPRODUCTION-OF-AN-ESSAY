@@ -9,7 +9,7 @@ attack.py
 generate.py
 requirements.txt
 # requirements_windows.txt
-setup_windows.bat
+# setup_windows.bat
 test_small_sample.py
 verify_install.py
 
