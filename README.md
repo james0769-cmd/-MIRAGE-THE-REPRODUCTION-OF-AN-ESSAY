@@ -65,7 +65,7 @@ hf download RachelHGF/Mirage-in-the-Eyes
 
 
 ### 🛠️ 方法 A: 自动化安装 (推荐)
-本项目提供了一个专门针对 Windows 11 和 RTX 4060 (8GB) 优化的自动配置脚本，可实现一键安装。
+本项目提供了一个专门针对 Windows 11 和 RTX 4060 (8GB) 优化的自动配置脚本，可实现一键安装。请查看[setup_windows.bat](setup_windows.bat)。
 
 #### 脚本功能说明：
 *   **环境清理**：自动检查并删除旧的 `mllm` 环境，避免依赖冲突。
@@ -108,7 +108,7 @@ pip install -r requirements.txt
 > 因此，**如果你是 Windows 用户，请务必使用下方的 Windows 专用命令**，以避免安装失败。
 
 > [!IMPORTANT]
-> 由于原项目是在 Linux/服务器环境上运行，我们为 Win11 优化了依赖文件：
+> 由于原项目是在 Linux/服务器环境上运行，我们为 Win11 优化了依赖文件：[requirements_windows.txt](requirements_windows.txt)
 ```powershell
 # 安装 Windows 专用依赖
 pip install -r requirements_windows.txt
@@ -124,7 +124,7 @@ pip install sentencepiece accelerate peft timm einops open_clip_torch opencv-pyt
 ```
 
 #### 1.4 验证安装
-使用我们编写的验证脚本检查环境是否配置正确：
+使用我们编写的验证脚本[verify_install.py](verify_install.py)检查环境是否配置正确：
 ```powershell
 python verify_install.py
 ```
@@ -145,6 +145,7 @@ python verify_install.py
 mkdir -p "D:\AI PROJEAT\mirage\weights\vicuna"
 
 # 登录 Hugging Face (首次使用需要)
+# 获取 Token 链接: https://huggingface.co/settings/tokens
 huggingface-cli login
 
 # 下载模型
@@ -199,28 +200,15 @@ llama_model: "D:/AI PROJEAT/mirage/weights/vicuna/vicuna-7b-v1.5"
 
 #### 下载方式
 
-原项目网站（https://huggingface.co/RachelHGF/Mirage-in-the-Eyes）中提供了Hallubench数据集的下载方式：
+访问项目网站 [https://huggingface.co/RachelHGF/Mirage-in-the-Eyes](https://huggingface.co/RachelHGF/Mirage-in-the-Eyes) 提供了 Hallubench 数据集的下载方式：
 访问这个地址：https://github.com/opendatalab/HA-DPO
 
+目录结构
 ```powershell
-# 克隆 HA-DPO 仓库获取下载脚本
-git clone https://github.com/opendatalab/HA-DPO.git
-cd HA-DPO
-
-# 按照官方 README 说明下载数据集
-# 通常包含：
-# - hallubench.json (评测数据)
-# - 对应的图片文件
-```
-
-#### 目录结构
-
-```
-D:\AI PROJEAT\mirage\data\
-├── hallubench/
-│   └── hallubench.json    # 数据集 JSON 文件
-└── images/
-    └── *.jpg              # 对应的图片
+data
+├── hadpo/minigpt4/
+│  └── desc_data.json
+│  └── pope_data.json
 ```
 
 ### 4.2 Visual Genome 数据集（可选）
@@ -228,10 +216,10 @@ D:\AI PROJEAT\mirage\data\
 如需训练或完整复现，请下载 Visual Genome 数据集：
 
 **下载链接：**
-- 图像数据集（Part 1）: [VG_100K](https://cs.stanford.edu/people/rak248/VG_100K_2/images.zip) (~15GB)
-- 图像数据集（Part 2）: [VG_100K_2](https://cs.stanford.edu/people/rak248/VG_100K_2/images2.zip) (~15GB)
-- 元数据: [image_data.json](http://visualgenome.org/static/data/dataset/image_data.json.zip) (~17MB)
-- 区域描述: [region_descriptions.json](http://visualgenome.org/static/data/dataset/region_descriptions.json.zip) (~712MB)
+- 图像数据集（Part 1）: [VG_100K](https://cs.stanford.edu/people/rak248/VG_100K_2/images.zip) (~5GB)
+- 图像数据集（Part 2）: [VG_100K_2](https://cs.stanford.edu/people/rak248/VG_100K_2/images2.zip) (~9GB)
+- 元数据: [image_data.json](http://visualgenome.org/static/data/dataset/image_data.json.zip) (~1.69MB)
+- 区域描述: [region_descriptions.json](http://visualgenome.org/static/data/dataset/region_descriptions.json.zip) (~121MB)
 
 **目录结构：**
 
