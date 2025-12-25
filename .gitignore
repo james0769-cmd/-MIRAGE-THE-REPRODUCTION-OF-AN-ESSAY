@@ -14,6 +14,8 @@ generate.py
 # verify_install.py
 
 # 根目录现有目录
+test_adv_output/
+outputs/
 __MACOSX/
 eval/
 eval_configs/

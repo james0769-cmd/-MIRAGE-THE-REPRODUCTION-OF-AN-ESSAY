@@ -338,3 +338,211 @@ torch.cuda.OutOfMemoryError: CUDA out of memory.
 Tried to allocate 32.00 MiB (GPU 0; 8.00 GiB total capacity; 
 14.39 GiB already allocated; 0 bytes free)
 ```
+
+---
+
+### 5.3 解决方案：device_map 内存优化 (Solution: device_map Memory Optimization)
+
+#### 问题诊断
+
+在 RTX 4060 (8GB) 环境下，即使是推理 (+generate.py+) 也可能遭遇 OOM：
+
+```
+Loading LLAMA...
+torch.cuda.OutOfMemoryError: CUDA out of memory.
+```
+
+**根本原因**：Vicuna-7B 模型本身需要约 13-14 GB 显存，远超 8GB 容量。
+
+#### 解决方案：HuggingFace Accelerate 的 +device_map+
+
+通过启用 **device_map="auto"** 和 **offload_folder**，可以将部分模型层自动分配到 CPU/磁盘：
+
+```python
+# minigpt4/models/mini_gpt4.py (已修改)
+self.llama_model = LlamaForCausalLM.from_pretrained(
+    llama_model,
+    torch_dtype=torch.float16,
+    device_map="auto",          # 自动分配模型各层到 GPU/CPU
+    offload_folder="./offload_cache",  # 临时文件夹用于磁盘 offload
+)
+```
+
+**工作原理**：
+1.  **GPU 层**：将模型的前几层（高频访问）放在 GPU
+2.  **CPU 层**：将中间层 offload 到 CPU 内存
+3.  **磁盘层**：将末尾层 offload 到磁盘（最慢但节省内存）
+
+#### 配置文件修改
+
+在 +eval_configs/minigpt4_eval.yaml+ 中添加：
+
+```yaml
+model:
+  arch: mini_gpt4
+  # ... 其他配置 ...
+  
+  # 显存优化：启用模型切分和 CPU offload
+  device_map: "auto"
+  offload_folder: "./offload_cache"
+```
+
+#### 代码修改
+
+为了支持 device_map，需要在 +generate.py+ 和 +test_small_sample.py+ 中添加智能设备分配逻辑：
+
+```python
+# 检查 LLM 是否使用了 device_map
+llm_model = getattr(model, 'llama_model', None) or getattr(model, 'llm_model', None)
+
+if llm_model is not None and getattr(llm_model, "hf_device_map", None) is not None:
+    # LLM 使用了 device_map（可能 offload 到 CPU/磁盘）
+    # 只将视觉编码器和 Q-Former 搬到 GPU
+    if hasattr(model, 'visual_encoder'):
+        model.visual_encoder = model.visual_encoder.to(device)
+    if hasattr(model, 'ln_vision'):
+        model.ln_vision = model.ln_vision.to(device)
+    if hasattr(model, 'Qformer'):
+        model.Qformer = model.Qformer.to(device)
+    if hasattr(model, 'llama_proj'):
+        model.llama_proj = model.llama_proj.to(device)
+    if hasattr(model, 'query_tokens'):
+        model.query_tokens.data = model.query_tokens.data.to(device)
+else:
+    # LLM 没用 device_map，整体搬到 GPU
+   model = model.to(device)
+```
+
+#### 性能与权衡
+
+| 方案 | 推理速度 | 显存占用 | 适用场景 |
+|------|---------|---------|---------|
+| **全 GPU** |  最快 |  ~14 GB | 高端 GPU (A100/V100) |
+| **device_map (GPU+CPU)** |  较快 |  ~4-6 GB | 中端 GPU (RTX 3090/4090) |
+| **device_map (GPU+CPU+Disk)** |  较慢 |  ~2-4 GB | **低端 GPU (RTX 4060 8GB)**  |
+
+**实测结果**（RTX 4060 8GB）：
+-  **+generate.py+** - 推理成功（每张图片约 20-30 秒）
+-  **+test_small_sample.py+** - 验证通过
+-  **+attack.py+** - 仍然 OOM（见下文分析）
+
+---
+
+### 5.4 攻击程序失败的根本原因 (Root Cause of Attack Failure)
+
+#### 症状：对抗图片目录为空
+
+运行 +attack.py+ 后检查输出目录：
+
+```powershell
+PS> ls outputs/minigpt4_*/adv_images/
+# Empty - 没有生成任何 .png 文件！
+```
+
++attack.log+ 也是空的，说明攻击过程中途失败但错误被静默忽略。
+
+#### 直接测试 attack.py
+
+```powershell
+python attack.py --model minigpt4 --gpu-id 0 \
+  --data-path test_attack_data.json \
+  --images-path "data\VG\VG_100K" \
+  --save-path "test_adv_output" \
+  --generation-mode greedy --eps 2
+```
+
+**结果**：
+
+```
+Initializing Model
+Loading VIT Done
+Loading Q-Former Done
+Loading LLAMA Done
+...
+torch.cuda.OutOfMemoryError: CUDA out of memory. 
+Tried to allocate 256.00 MiB (GPU 0; 8.00 GiB total capacity; 
+7.89 GiB already allocated; 0 bytes free; 7.93 GiB reserved)
+```
+
+#### 为什么 device_map 对攻击无效？
+
+| 阶段 | 内存需求 | device_map 效果 |
+|------|---------|----------------|
+| **推理 (generate.py)** | 模型权重 (13-14 GB) + 前向激活值 (1-2 GB) |  **有效** - 可将模型层 offload |
+| **攻击 (attack.py)** | 模型权重 + 前向激活值 + **反向传播梯度** (2-3 GB) + **注意力图** (1-2 GB) + **优化器状态** (1 GB) |  **无效** - 梯度和注意力图必须在 GPU |
+
+**关键差异**：
+
+1. **梯度存储**：PGD 攻击需要保存每层的梯度用于反向传播
+   ```python
+   loss.backward()  # 梯度会占用大量 GPU 显存
+   ```
+
+2. **注意力图提取**：需要完整的注意力矩阵用于损失计算
+   ```python
+   outputs = model.generate(..., output_attentions=True)
+   attn_map = outputs.attentions  # 存储所有层的注意力（巨大）
+   ```
+
+3. **30 轮迭代**：每轮都需要完整的前向+反向，累积内存压力
+
+**即使使用 device_map，这些中间张量仍然必须在 GPU 上，导致 OOM。**
+
+#### 为什么之前没有发现这个问题？
+
+**静默失败机制**：
+
+1. +run_attack_pipeline.py+ 调用 +attack.py+ 作为子进程
+2. 子进程崩溃 (+exit code: 1+)，但父进程没有中断
+3. 攻击阶段"完成"（假成功），继续执行生成和评估阶段
+4. 用户看到" 流程完成！"但实际上对抗图片根本没生成
+
+**检查方法**：
+
+```powershell
+# 检查对抗图片是否真的生成了
+Get-ChildItem outputs\*\adv_images\*.png
+# 如果为空  攻击失败
+```
+
+#### 可能的解决方案（尚未实现）
+
+**选项 1：减少优化复杂度**
+- 减少迭代次数（30  10）
+- 简化损失函数（去除注意力图提取）
+- 使用梯度累积（gradient accumulation）
+
+**选项 2：模型量化**
+- 使用 4-bit 量化 (bitsandbytes)
+- 牺牲精度换取显存
+
+**选项 3：云端 GPU**
+- 使用 Google Colab Pro (A100 40GB)
+- AWS/Azure GPU 实例
+
+**选项 4：分布式攻击**
+- 将 30 轮迭代分成多个批次
+- 每批次清空 GPU cache
+
+> [!CAUTION]
+> **当前状态**：在 RTX 4060 (8GB) 上，+attack.py+ **无法成功生成对抗图片**。
+> 建议使用至少 16GB 显存的 GPU，或跳过攻击阶段直接验证推理功能。
+
+#### 验证推理功能（跳过攻击）
+
+如果只想验证模型推理和 device_map 功能，可以：
+
+```powershell
+# 方法 1: 使用测试脚本（推荐）
+python test_small_sample.py --model minigpt4 --num-samples 5
+
+# 方法 2: 跳过攻击阶段
+python run_attack_pipeline.py --model minigpt4 --num-samples 5 --skip-attack
+```
+
+这将验证：
+-  模型加载和 device_map 配置
+-  图片预处理和推理流程
+-  描述生成功能
+
+
